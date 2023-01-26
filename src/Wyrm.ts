@@ -4,16 +4,21 @@ import { RelativeDirection } from "./RelativeDirection";
 import { Action } from "./Action";
 import { Tile } from "./Tile";
 import { Grid, GridNeighbors } from "./Grid";
-import { actionFromRelativeDirection, randomChance, relativeDirectionFromAction, rotateDirection } from "./utils"
+import {
+    actionFromRelativeDirection,
+    randomChance,
+    relativeDirectionFromAction,
+    rotateDirection,
+} from "./utils";
 
-export class WyrmOptions {
+export interface WyrmOptions {
     id: number;
     grid: Grid;
     position: Point;
     direction: Direction;
 }
 
-export class MoveParams {
+export interface MoveParams {
     direction: Direction;
     grow: boolean;
     poop: boolean;
@@ -48,11 +53,13 @@ export class Wyrm {
     }
 
     private selectBestDirection(neighbors: GridNeighbors): RelativeDirection {
-        const sortedDirections = neighbors.map(([direction, tile]) => {
-            const score = this.grid.getTileScore(tile);
-            return [direction, score];
-        }).sort(([, scoreA], [, scoreB]) => scoreB - scoreA);
-        const [direction,] = sortedDirections[0];
+        const sortedDirections = neighbors
+            .map(([direction, tile]) => {
+                const score = this.grid.getTileScore(tile);
+                return [direction, score];
+            })
+            .sort(([, scoreA], [, scoreB]) => scoreB - scoreA);
+        const [direction] = sortedDirections[0];
         return direction;
     }
 
@@ -67,9 +74,9 @@ export class Wyrm {
             case this.id:
                 return this.die();
             case Tile.Empty:
-                return this.move({direction, grow: false, poop: randomChance(1 / 32)});
+                return this.move({ direction, grow: false, poop: randomChance(1 / 32) });
             case Tile.Food:
-                return this.move({direction, grow: true, poop: false});
+                return this.move({ direction, grow: true, poop: false });
             default:
                 if (!this.grid.wyrms[tileId]) {
                     console.warn(`enemy wyrm #${tileId} is dead`);

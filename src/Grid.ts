@@ -6,16 +6,16 @@ import { Tile } from "./Tile";
 import { Action } from "./Action";
 import { Wyrm } from "./Wyrm";
 
-export interface GridNeighbors extends Array<[RelativeDirection, Tile]> { }
+export type GridNeighbors = [RelativeDirection, Tile][];
 
-interface ScoreTable extends Array<number> { }
+type ScoreTable = number[];
 
 const tileScores: ScoreTable = [];
 tileScores[Tile.Empty] = 0;
 tileScores[Tile.Wall] = -1;
 tileScores[Tile.Food] = 1;
 
-interface ColorTable extends Array<string> { }
+type ColorTable = string[];
 
 const tileColors: ColorTable = [];
 tileColors[Tile.Empty] = "#001328";
@@ -46,7 +46,7 @@ const wyrmColors: ColorTable = [
 ];
 
 interface WyrmTable {
-    [id: number]: Wyrm
+    [id: number]: Wyrm;
 }
 
 export interface GridOptions {
@@ -101,7 +101,9 @@ export class Grid {
                 const position = { x, y };
                 const tile = this.atEdge(position)
                     ? Tile.Wall
-                    : (randomChance(1 / 16) ? Tile.Food : Tile.Empty);
+                    : randomChance(1 / 16)
+                    ? Tile.Food
+                    : Tile.Empty;
                 this.setTile(position, tile);
             }
         }
@@ -112,9 +114,9 @@ export class Grid {
             this.createRandomWyrm();
         }
 
-        const wyrms = Object.keys(this.wyrms).map(id => this.wyrms[+id]);
-        wyrms.sort(wyrm => -wyrm.size);
-        wyrms.forEach(wyrm => {
+        const wyrms = Object.keys(this.wyrms).map((id) => this.wyrms[+id]);
+        wyrms.sort((wyrm) => -wyrm.size);
+        wyrms.forEach((wyrm) => {
             if (this.wyrms[wyrm.id]) {
                 wyrm.doBestAction();
             }
@@ -180,7 +182,7 @@ export class Grid {
         const wyrm = this.wyrms[id];
         delete this.wyrms[id];
 
-        wyrm.segments.forEach(position => {
+        wyrm.segments.forEach((position) => {
             const tile = randomChance(1 / 4) ? Tile.Empty : Tile.Food;
             this.setTile(position, tile);
         });
@@ -193,9 +195,10 @@ export class Grid {
         const advantage = randomInt(8, 12) / 10;
         const finalRatio = ratio * advantage;
 
-        let winner = wyrmA, loser = wyrmB;
+        let winner = wyrmA,
+            loser = wyrmB;
         if (finalRatio < 0.5) {
-            winner = wyrmB, loser = wyrmA;
+            (winner = wyrmB), (loser = wyrmA);
         }
 
         loser.die();

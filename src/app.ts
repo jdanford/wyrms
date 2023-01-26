@@ -1,27 +1,26 @@
-import { getElementById, randomInt } from "./utils";
+import { randomInt } from "./utils";
 import { Direction } from "./Direction";
-import { Grid, GridOptions } from "./Grid";
+import { Grid } from "./Grid";
 
 export class App {
     private grid: Grid;
     private lastStepTime: number;
     private stepInterval: number;
 
-    constructor() {
+    constructor(canvasElement: HTMLCanvasElement) {
         const tileSize = 8;
         const width = Math.floor(window.innerWidth / tileSize);
         const height = Math.floor(window.innerHeight / tileSize);
-        const canvasElement = getElementById("canvas") as HTMLCanvasElement;
         canvasElement.addEventListener("click", this.onClick.bind(this));
 
-        this.grid = new Grid({width, height, tileSize, canvasElement});
+        this.grid = new Grid({ width, height, tileSize, canvasElement });
         this.lastStepTime = 0;
         this.stepInterval = 1000 / 16;
         this.run();
     }
 
     private run(): void {
-        let update = (currentTime: number) => {
+        const update = (currentTime: number) => {
             requestAnimationFrame(update);
 
             const nextStepTime = this.lastStepTime + this.stepInterval;
