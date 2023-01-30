@@ -44,9 +44,4 @@ module.exports = {
             logo: path.resolve("./favicon.png"),
         }),
     ],
-    output: {
-        filename: "static/[name].[chunkhash:8].js",
-        path: path.resolve("./dist"),
-        publicPath: "./",
-    },
 };

@@ -7,7 +7,6 @@
     "scripts": {
         "start": "webpack-dev-server --config webpack.dev.js",
         "build": "webpack --config webpack.prod.js",
-        "serve": "node server.js",
         "test": "npm-run-all check-code lint-code lint-configs",
         "check-code": "tsc --noEmit --project .",
         "lint-code": "eslint 'src/**/*.{ts,tsx}'",
@@ -21,7 +20,8 @@
         "fix-all": "npm-run-all --parallel fix-code fix-styles fix-configs fix-docs"
     },
     "dependencies": {
-        "bootstrap": "^5.2.3"
+        "bootstrap": "^5.2.3",
+        "chroma-js": "^2.4.2"
     },
     "devDependencies": {
         "@typescript-eslint/eslint-plugin": "^5.48.2",
@@ -39,9 +39,13 @@
         "npm-run-all": "^4.1.5",
         "optimize-css-assets-webpack-plugin": "^6.0.1",
         "postcss-loader": "^7.0.2",
+        "postcss-scss": "^4.0.6",
+        "pre-commit": "^1.2.2",
         "prettier": "^2.8.3",
         "sass": "^1.57.1",
         "sass-loader": "^13.2.0",
+        "stylelint": "^14.16.1",
+        "stylelint-prettier": "^2.0.0",
         "stylelint-scss": "^4.3.0",
         "terser-webpack-plugin": "^5.3.6",
         "ts-loader": "^9.4.2",
@@ -50,5 +54,9 @@
         "webpack-cli": "^5.0.1",
         "webpack-dev-server": "^4.11.1",
         "webpack-merge": "^5.8.0"
-    }
+    },
+    "pre-commit": [
+        "fix-all",
+        "check-code"
+    ]
 }

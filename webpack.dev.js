@@ -13,5 +13,9 @@ module.exports = merge(common, {
             directory: path.resolve("./dist"),
         },
     },
-    plugins: [...common.plugins],
+    output: {
+        filename: "static/[name].[chunkhash:8].js",
+        path: path.resolve("./dist"),
+        publicPath: "/",
+    },
 });

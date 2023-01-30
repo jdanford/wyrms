@@ -1,21 +1,18 @@
-import { Point, moveInDirection } from "./Point";
-import { Direction } from "./Direction";
-import { RelativeDirection } from "./RelativeDirection";
-import { Action } from "./Action";
-import { Tile } from "./Tile";
-import { Grid, GridNeighbors } from "./Grid";
-import {
-    actionFromRelativeDirection,
-    randomChance,
-    relativeDirectionFromAction,
-    rotateDirection,
-} from "./utils";
+import { Color } from "chroma-js";
 
-export interface WyrmOptions {
-    id: number;
+import { Action, actionFromRelativeDirection, relativeDirectionFromAction } from "./action";
+import { Direction, RelativeDirection, rotate } from "./direction";
+import { Grid, GridNeighbors } from "./grid";
+import { move, Point } from "./point";
+import { randomChance } from "./random";
+import { Tile } from "./tile";
+
+export interface WyrmParams {
     grid: Grid;
+    id: number;
     position: Point;
     direction: Direction;
+    color: Color;
 }
 
 export interface MoveParams {
@@ -25,16 +22,18 @@ export interface MoveParams {
 }
 
 export class Wyrm {
-    id: number;
     grid: Grid;
-    segments: [Point];
+    id: number;
+    segments: Point[];
     direction: Direction;
+    color: Color;
 
-    constructor(options: WyrmOptions) {
-        this.id = options.id;
-        this.grid = options.grid;
-        this.segments = [options.position];
-        this.direction = options.direction;
+    constructor(params: WyrmParams) {
+        this.id = params.id;
+        this.grid = params.grid;
+        this.segments = [params.position];
+        this.direction = params.direction;
+        this.color = params.color;
     }
 
     get size(): number {
@@ -65,8 +64,8 @@ export class Wyrm {
 
     doAction(action: Action): void {
         const relativeDirection = relativeDirectionFromAction(action);
-        const direction = rotateDirection(this.direction, relativeDirection);
-        const destination = moveInDirection(this.head, direction);
+        const direction = rotate(this.direction, relativeDirection);
+        const destination = move(this.head, direction);
 
         const tileId = this.grid.getTile(destination) as number;
         switch (tileId) {
@@ -77,10 +76,11 @@ export class Wyrm {
                 return this.move({ direction, grow: false, poop: randomChance(1 / 32) });
             case Tile.Food:
                 return this.move({ direction, grow: true, poop: false });
+            case undefined:
+                debugger;
             default:
                 if (!this.grid.wyrms[tileId]) {
-                    console.warn(`enemy wyrm #${tileId} is dead`);
-                    this.grid.setTile(destination, Tile.Empty);
+                    console.error(`wyrm #${this.id} encountered unknown wyrm #${tileId}`);
                     return;
                 }
 
@@ -89,14 +89,15 @@ export class Wyrm {
     }
 
     private move({ direction, grow, poop }: MoveParams): void {
-        const destination = moveInDirection(this.head, direction);
-        this.grid.setTile(destination, this.id);
+        const destination = move(this.head, direction);
         this.segments.unshift(destination);
+        this.grid.setTile(destination, this.id);
 
         if (!grow) {
-            const last = this.segments.pop() || destination;
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const end = this.segments.pop()!;
             const tile = poop ? Tile.Food : Tile.Empty;
-            this.grid.setTile(last, tile);
+            this.grid.setTile(end, tile);
         }
 
         this.direction = direction;

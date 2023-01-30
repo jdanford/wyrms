@@ -1,28 +1,19 @@
-import { Direction } from "./Direction";
+import { Direction, pointFromDirection } from "./direction";
 
 export interface Point {
     x: number;
     y: number;
 }
 
-export function moveInDirection(point: Point, direction: Direction): Point {
-    const newPoint = { ...point };
-    switch (direction) {
-        case Direction.Up:
-            newPoint.y -= 1;
-            break;
-        case Direction.Right:
-            newPoint.x += 1;
-            break;
-        case Direction.Down:
-            newPoint.y += 1;
-            break;
-        case Direction.Left:
-            newPoint.x -= 1;
-            break;
-    }
+export function addPoints(a: Point, b: Point): Point {
+    const x = a.x + b.x;
+    const y = a.y + b.y;
+    return { x, y };
+}
 
-    return newPoint;
+export function move(point: Point, direction: Direction): Point {
+    const offset = pointFromDirection(direction);
+    return addPoints(point, offset);
 }
 
 export function wrapBounds(point: Point, width: number, height: number): Point {

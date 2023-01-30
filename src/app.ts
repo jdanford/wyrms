@@ -1,21 +1,24 @@
-import { randomInt } from "./utils";
-import { Direction } from "./Direction";
-import { Grid } from "./Grid";
+import { Direction } from "./direction";
+import { Grid } from "./grid";
+import { randomInt } from "./random";
 
 export class App {
     private grid: Grid;
     private lastStepTime: number;
     private stepInterval: number;
+    private pendingCallbacks: (() => void)[];
 
     constructor(canvasElement: HTMLCanvasElement) {
         const tileSize = 8;
+        const spawnInterval = 32;
         const width = Math.floor(window.innerWidth / tileSize);
         const height = Math.floor(window.innerHeight / tileSize);
         canvasElement.addEventListener("click", this.onClick.bind(this));
 
-        this.grid = new Grid({ width, height, tileSize, canvasElement });
+        this.grid = new Grid({ width, height, tileSize, spawnInterval, canvasElement });
         this.lastStepTime = 0;
         this.stepInterval = 1000 / 16;
+        this.pendingCallbacks = [];
         this.run();
     }
 
@@ -26,8 +29,12 @@ export class App {
             const nextStepTime = this.lastStepTime + this.stepInterval;
             if (currentTime >= nextStepTime) {
                 this.lastStepTime = currentTime;
+
+                this.pendingCallbacks.forEach((callback) => callback());
+                this.pendingCallbacks = [];
+
                 this.grid.step();
-                this.grid.draw();
+                this.grid.render();
             }
         };
 
@@ -39,7 +46,7 @@ export class App {
         const y = Math.floor(event.offsetY / this.grid.tileSize);
         const position = { x, y };
         const direction = randomInt(0, 3) as Direction;
-        this.grid.createWyrm(position, direction);
-        this.grid.step();
+        const callback = () => this.grid.createWyrm(position, direction);
+        this.pendingCallbacks.push(callback);
     }
 }
