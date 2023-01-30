@@ -1,3 +1,4 @@
+const path = require("path");
 const { merge } = require("webpack-merge");
 
 const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
