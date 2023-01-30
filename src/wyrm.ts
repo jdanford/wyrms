@@ -76,8 +76,6 @@ export class Wyrm {
                 return this.move({ direction, grow: false, poop: randomChance(1 / 32) });
             case Tile.Food:
                 return this.move({ direction, grow: true, poop: false });
-            case undefined:
-                debugger;
             default:
                 if (!this.grid.wyrms[tileId]) {
                     console.error(`wyrm #${this.id} encountered unknown wyrm #${tileId}`);

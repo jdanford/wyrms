@@ -242,7 +242,7 @@ export class Grid {
 
     private atEdge(position: Point): boolean {
         const { x, y } = position;
-        return y === 0 || y === this.height - 1 || x === 0 || x === this.width - 1;
+        return x === 0 || x === this.width - 1 || y === 0 || y === this.height - 1;
     }
 
     private index(position: Point) {
