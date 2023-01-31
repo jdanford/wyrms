@@ -1,14 +1,17 @@
 import { Color } from "chroma-js";
+import EventEmitter = require("events");
+import TypedEventEmitter from "typed-emitter";
 
 import { Action, actionFromRelativeDirection, relativeDirectionFromAction } from "./action";
 import { Direction, RelativeDirection, rotate } from "./direction";
-import { Grid, GridNeighbors } from "./grid";
+import { World, WorldNeighbors } from "./world";
 import { move, Point } from "./point";
 import { randomChance } from "./random";
 import { Tile } from "./tile";
+import { WyrmEvents } from "./events";
 
 export interface WyrmParams {
-    grid: Grid;
+    world: World;
     id: number;
     position: Point;
     direction: Direction;
@@ -22,18 +25,21 @@ export interface MoveParams {
 }
 
 export class Wyrm {
-    grid: Grid;
+    world: World;
     id: number;
     segments: Point[];
     direction: Direction;
     color: Color;
 
+    private emitter: TypedEventEmitter<WyrmEvents>;
+
     constructor(params: WyrmParams) {
         this.id = params.id;
-        this.grid = params.grid;
+        this.world = params.world;
         this.segments = [params.position];
         this.direction = params.direction;
         this.color = params.color;
+        this.emitter = new EventEmitter() as TypedEventEmitter<WyrmEvents>;
     }
 
     get size(): number {
@@ -45,16 +51,16 @@ export class Wyrm {
     }
 
     doBestAction(): void {
-        const neighbors = this.grid.getNeighbors(this.head, this.direction);
+        const neighbors = this.world.getNeighbors(this.head, this.direction);
         const direction = this.selectBestDirection(neighbors);
         const action = actionFromRelativeDirection(direction);
         this.doAction(action);
     }
 
-    private selectBestDirection(neighbors: GridNeighbors): RelativeDirection {
+    private selectBestDirection(neighbors: WorldNeighbors): RelativeDirection {
         const sortedDirections = neighbors
             .map(([direction, tile]) => {
-                const score = this.grid.getTileScore(tile);
+                const score = this.world.getTileScore(tile);
                 return [direction, score];
             })
             .sort(([, scoreA], [, scoreB]) => scoreB - scoreA);
@@ -67,7 +73,7 @@ export class Wyrm {
         const direction = rotate(this.direction, relativeDirection);
         const destination = move(this.head, direction);
 
-        const tileId = this.grid.getTile(destination) as number;
+        const tileId = this.world.getTile(destination) as number;
         switch (tileId) {
             case Tile.Wall:
             case this.id:
@@ -77,31 +83,48 @@ export class Wyrm {
             case Tile.Food:
                 return this.move({ direction, grow: true, poop: false });
             default:
-                if (!this.grid.wyrms[tileId]) {
+                const enemyWyrm = this.world.wyrms[tileId];
+                if (enemyWyrm === undefined) {
                     console.error(`wyrm #${this.id} encountered unknown wyrm #${tileId}`);
                     return;
                 }
 
-                return this.grid.fightWyrms(this.id, tileId);
+                return this.world.fightWyrms(this, enemyWyrm);
         }
     }
 
     private move({ direction, grow, poop }: MoveParams): void {
         const destination = move(this.head, direction);
         this.segments.unshift(destination);
-        this.grid.setTile(destination, this.id);
+        this.world.setTile(destination, this.id);
 
         if (!grow) {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const end = this.segments.pop()!;
             const tile = poop ? Tile.Food : Tile.Empty;
-            this.grid.setTile(end, tile);
+            this.world.setTile(end, tile);
         }
 
         this.direction = direction;
     }
 
     die(): void {
-        this.grid.destroyWyrm(this.id);
+        this.world.destroyWyrm(this.id);
+        this.emitter.emit("wyrm-died", { wyrm: this });
+    }
+
+    on<E extends keyof WyrmEvents>(event: E, listener: WyrmEvents[E]): this {
+        this.emitter.on(event, listener);
+        return this;
+    }
+
+    once<E extends keyof WyrmEvents>(event: E, listener: WyrmEvents[E]): this {
+        this.emitter.once(event, listener);
+        return this;
+    }
+
+    off<E extends keyof WyrmEvents>(event: E, listener: WyrmEvents[E]): this {
+        this.emitter.off(event, listener);
+        return this;
     }
 }

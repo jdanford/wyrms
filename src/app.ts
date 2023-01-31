@@ -1,24 +1,29 @@
 import { Direction } from "./direction";
-import { Grid } from "./grid";
+import { ScreenClickEvent } from "./events";
 import { randomInt } from "./random";
+import { Screen } from "./screen";
+import { World } from "./world";
+
+const TILE_SIZE = 8;
+const SPAWN_INTERVAL = 32;
+const STEP_INTERVAL = 1000 / 16;
 
 export class App {
-    private grid: Grid;
+    private world: World;
+    private screen: Screen;
     private lastStepTime: number;
-    private stepInterval: number;
     private pendingCallbacks: (() => void)[];
 
-    constructor(canvasElement: HTMLCanvasElement) {
-        const tileSize = 8;
-        const spawnInterval = 32;
-        const width = Math.floor(window.innerWidth / tileSize);
-        const height = Math.floor(window.innerHeight / tileSize);
-        canvasElement.addEventListener("click", this.onClick.bind(this));
+    constructor(canvas: HTMLCanvasElement) {
+        const width = Math.floor(window.innerWidth / TILE_SIZE);
+        const height = Math.floor(window.innerHeight / TILE_SIZE);
 
-        this.grid = new Grid({ width, height, tileSize, spawnInterval, canvasElement });
+        this.world = new World({ width, height, spawnInterval: SPAWN_INTERVAL });
+        this.screen = new Screen({ width, height, pixelSize: TILE_SIZE, canvas });
         this.lastStepTime = 0;
-        this.stepInterval = 1000 / 16;
         this.pendingCallbacks = [];
+
+        this.screen.on("click", this.onClick.bind(this));
         this.run();
     }
 
@@ -26,27 +31,25 @@ export class App {
         const update = (currentTime: number) => {
             requestAnimationFrame(update);
 
-            const nextStepTime = this.lastStepTime + this.stepInterval;
+            const nextStepTime = this.lastStepTime + STEP_INTERVAL;
             if (currentTime >= nextStepTime) {
                 this.lastStepTime = currentTime;
 
                 this.pendingCallbacks.forEach((callback) => callback());
                 this.pendingCallbacks = [];
 
-                this.grid.step();
-                this.grid.render();
+                this.world.step();
+                this.world.updateScreen(this.screen);
+                this.screen.render();
             }
         };
 
         requestAnimationFrame(update);
     }
 
-    private onClick(event: MouseEvent): void {
-        const x = Math.floor(event.offsetX / this.grid.tileSize);
-        const y = Math.floor(event.offsetY / this.grid.tileSize);
-        const position = { x, y };
+    private onClick(event: ScreenClickEvent): void {
         const direction = randomInt(0, 3) as Direction;
-        const callback = () => this.grid.createWyrm(position, direction);
+        const callback = () => this.world.createWyrm(event.position, direction);
         this.pendingCallbacks.push(callback);
     }
 }

@@ -1,4 +1,4 @@
-export function randomChance(n: number) {
+export function randomChance(n: number): boolean {
     return Math.random() < n;
 }
 

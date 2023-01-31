@@ -21,7 +21,8 @@
     },
     "dependencies": {
         "bootstrap": "^5.2.3",
-        "chroma-js": "^2.4.2"
+        "chroma-js": "^2.4.2",
+        "event-target": "^1.2.3"
     },
     "devDependencies": {
         "@typescript-eslint/eslint-plugin": "^5.48.2",
@@ -51,6 +52,7 @@
         "stylelint-scss": "^4.3.0",
         "terser-webpack-plugin": "^5.3.6",
         "ts-loader": "^9.4.2",
+        "typed-emitter": "^2.1.0",
         "typescript": "^4.9.4",
         "webpack": "^5.75.0",
         "webpack-cli": "^5.0.1",

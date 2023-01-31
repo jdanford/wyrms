@@ -1,16 +1,19 @@
-import { Color, oklch } from "chroma-js";
+import { Color } from "chroma-js";
+import EventEmitter = require("events");
+import TypedEventEmitter from "typed-emitter";
 
 import { Action } from "./action";
-import { getRenderingContext } from "./canvas";
-import { randomWyrmColor, TILE_COLORS } from "./colors";
+import { MISSING_WYRM_COLOR, randomWyrmColor, TILE_COLORS } from "./colors";
 import { Direction, RelativeDirection, rotate } from "./direction";
+import { WorldEvents } from "./events";
 import { clamp } from "./math";
 import { move, Point } from "./point";
 import { randomChance, randomGaussian, randomInt } from "./random";
+import { Screen } from "./screen";
 import { Tile } from "./tile";
 import { Wyrm } from "./wyrm";
 
-export type GridNeighbors = [RelativeDirection, Tile][];
+export type WorldNeighbors = [RelativeDirection, Tile][];
 
 const tileScores: number[] = [];
 tileScores[Tile.Empty] = 0;
@@ -21,31 +24,26 @@ const MAX_WYRM_ID = (1 << 16) - 1;
 
 type WyrmTable = Record<number, Wyrm>;
 
-export interface GridParams {
+export interface WorldParams {
     width: number;
     height: number;
-    tileSize: number;
     spawnInterval: number;
-    canvasElement: HTMLCanvasElement;
 }
 
-export class Grid {
+export class World {
     width: number;
     height: number;
-    tileSize: number;
     spawnInterval: number;
     wyrms: WyrmTable;
 
     private nextWyrmId: number;
     private tiles: Uint16Array;
     private stepCount: number;
-    private context: CanvasRenderingContext2D;
-    private imageData: ImageData;
+    private emitter: TypedEventEmitter<WorldEvents>;
 
-    constructor(params: GridParams) {
+    constructor(params: WorldParams) {
         this.width = params.width;
         this.height = params.height;
-        this.tileSize = params.tileSize;
         this.spawnInterval = params.spawnInterval;
 
         this.wyrms = {};
@@ -55,26 +53,7 @@ export class Grid {
         this.tiles = new Uint16Array(this.width * this.height);
         this.fill();
 
-        this.context = getRenderingContext(params.canvasElement);
-        this.context.imageSmoothingEnabled = false;
-
-        this.prepareCanvas();
-        this.imageData = this.context.createImageData(this.width, this.height);
-    }
-
-    private get canvas(): HTMLCanvasElement {
-        return this.context.canvas;
-    }
-
-    private prepareCanvas() {
-        const screenWidth = this.width * this.tileSize;
-        const screenHeight = this.height * this.tileSize;
-
-        this.canvas.width = this.width;
-        this.canvas.height = this.height;
-        this.canvas.style.width = `${screenWidth}px`;
-        this.canvas.style.height = `${screenHeight}px`;
-        this.canvas.style.imageRendering = "pixelated";
+        this.emitter = new EventEmitter() as TypedEventEmitter<WorldEvents>;
     }
 
     private fill(): void {
@@ -107,26 +86,15 @@ export class Grid {
         this.stepCount++;
     }
 
-    render(): void {
-        const pixelData = this.imageData.data;
-
+    updateScreen(screen: Screen): void {
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 const index = y * this.width + x;
                 const tile = this.tiles[index];
                 const tileColor = this.getTileColor(tile);
-                const [r, g, b] = tileColor._rgb._unclipped;
-
-                const pixelIndex = index * 4;
-                pixelData[pixelIndex + 0] = r;
-                pixelData[pixelIndex + 1] = g;
-                pixelData[pixelIndex + 2] = b;
-                pixelData[pixelIndex + 3] = 255;
+                screen.setPixel(index, tileColor);
             }
         }
-
-        this.context.clearRect(0, 0, this.context.canvas.width, this.context.canvas.height);
-        this.context.putImageData(this.imageData, 0, 0);
     }
 
     private getTileColor(tile: Tile): Color {
@@ -137,8 +105,8 @@ export class Grid {
 
         const wyrm = this.wyrms[i];
         if (wyrm === undefined) {
-            console.error(`wyrm #${tile} is dead`);
-            return oklch(1, 0, 0);
+            console.error(`wyrm #${i} is dead`);
+            return MISSING_WYRM_COLOR;
         }
         return wyrm.color;
     }
@@ -170,16 +138,18 @@ export class Grid {
 
         const id = this.getNextWyrmId();
         const color = randomWyrmColor(id);
-        const wyrm = new Wyrm({ grid: this, id, position, direction, color });
+        const wyrm = new Wyrm({ world: this, id, position, direction, color });
         this.wyrms[id] = wyrm;
         this.setTile(position, id);
+
+        this.emitter.emit("wyrm-spawned", { wyrm });
     }
 
-    private getNextWyrmId() {
+    private getNextWyrmId(): number {
         const nextId = this.nextWyrmId;
         if (this.nextWyrmId == MAX_WYRM_ID) {
             this.nextWyrmId = Tile.Wyrm;
-            while (this.wyrms[this.nextWyrmId]) {
+            while (this.wyrms[this.nextWyrmId] !== undefined) {
                 this.nextWyrmId += 1;
             }
         } else {
@@ -200,9 +170,7 @@ export class Grid {
         });
     }
 
-    fightWyrms(idA: number, idB: number): void {
-        const wyrmA = this.wyrms[idA];
-        const wyrmB = this.wyrms[idB];
+    fightWyrms(wyrmA: Wyrm, wyrmB: Wyrm): void {
         const ratio = wyrmA.size / wyrmB.size;
         const advantage = randomInt(8, 12) / 10;
         const finalRatio = ratio * advantage;
@@ -222,7 +190,12 @@ export class Grid {
         return this.tiles[i];
     }
 
-    getNeighbors(position: Point, direction: Direction): GridNeighbors {
+    setTile(position: Point, tile: Tile): void {
+        const i = this.index(position);
+        this.tiles[i] = tile;
+    }
+
+    getNeighbors(position: Point, direction: Direction): WorldNeighbors {
         const left = rotate(direction, RelativeDirection.Left);
         const right = rotate(direction, RelativeDirection.Right);
         const forwardPosition = move(position, direction);
@@ -235,17 +208,27 @@ export class Grid {
         ];
     }
 
-    setTile(position: Point, tile: Tile): void {
-        const i = this.index(position);
-        this.tiles[i] = tile;
-    }
-
     private atEdge(position: Point): boolean {
         const { x, y } = position;
         return x === 0 || x === this.width - 1 || y === 0 || y === this.height - 1;
     }
 
-    private index(position: Point) {
+    private index(position: Point): number {
         return position.y * this.width + position.x;
+    }
+
+    on<E extends keyof WorldEvents>(event: E, listener: WorldEvents[E]): this {
+        this.emitter.on(event, listener);
+        return this;
+    }
+
+    once<E extends keyof WorldEvents>(event: E, listener: WorldEvents[E]): this {
+        this.emitter.once(event, listener);
+        return this;
+    }
+
+    off<E extends keyof WorldEvents>(event: E, listener: WorldEvents[E]): this {
+        this.emitter.off(event, listener);
+        return this;
     }
 }
