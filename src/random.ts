@@ -1,10 +1,12 @@
+import { lerp } from "./math";
+
 export function randomChance(n: number): boolean {
     return Math.random() < n;
 }
 
 export function random(min: number, max: number): number {
-    const range = max - min;
-    return Math.random() * range + min;
+    const t = Math.random();
+    return lerp(t, min, max);
 }
 
 export function randomInt(min: number, max: number): number {

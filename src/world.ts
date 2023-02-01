@@ -143,6 +143,7 @@ export class World {
         this.setTile(position, id);
 
         this.emitter.emit("wyrm-spawned", { wyrm });
+        wyrm.on("wyrm-died", (event) => this.emitter.emit("wyrm-died", event));
     }
 
     private getNextWyrmId(): number {
@@ -174,13 +175,7 @@ export class World {
         const ratio = wyrmA.size / wyrmB.size;
         const advantage = randomInt(8, 12) / 10;
         const finalRatio = ratio * advantage;
-
-        let winner = wyrmA,
-            loser = wyrmB;
-        if (finalRatio < 0.5) {
-            (winner = wyrmB), (loser = wyrmA);
-        }
-
+        const [winner, loser] = finalRatio >= 0.5 ? [wyrmA, wyrmB] : [wyrmB, wyrmA];
         loser.die();
         winner.doAction(Action.MoveForward);
     }

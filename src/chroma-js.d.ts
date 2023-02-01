@@ -422,6 +422,8 @@ declare module "chroma-js" {
              */
             lab: () => ColorSpaces["lab"];
 
+            oklab: () => ColorSpaces["oklab"];
+
             /**
              * Returns an array with the **Lightness**, **chroma**, and **hue**
              * components.
@@ -430,6 +432,8 @@ declare module "chroma-js" {
              * chroma('skyblue').lch() === [79.21,25.94,235.11]
              */
             lch: () => ColorSpaces["lch"];
+
+            oklch: () => ColorSpaces["oklch"];
 
             /**
              * Alias of [lch](#color-lch), but with the components in reverse
