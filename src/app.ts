@@ -19,11 +19,12 @@ const MASTER_VOLUME_DB = -6;
 export class App {
     private world: World;
     private screen: Screen;
-    private lastStepTime: number;
-    private pendingCallbacks: (() => void)[];
     private audioOutput: ToneAudioNode | undefined;
     private squareSynth: MonoSynth;
     private sawSynth: MonoSynth;
+
+    private lastStepTime: number;
+    private pendingCallbacks: (() => void)[];
 
     constructor(canvas: HTMLCanvasElement) {
         const width = Math.floor(window.innerWidth / TILE_SIZE);
@@ -31,23 +32,22 @@ export class App {
 
         this.world = new World({ width, height, spawnInterval: SPAWN_INTERVAL });
         this.screen = new Screen({ width, height, pixelSize: TILE_SIZE, canvas });
-        this.lastStepTime = 0;
-        this.pendingCallbacks = [];
         this.audioOutput = undefined;
 
         this.squareSynth = new MonoSynth({
             oscillator: { type: "square" },
-            filterEnvelope: { baseFrequency: 2500 },
+            filterEnvelope: { baseFrequency: 2500, octaves: 0 },
             envelope: { release: 0.8 },
         });
 
         this.sawSynth = new MonoSynth({
             oscillator: { type: "sawtooth" },
-            filterEnvelope: { baseFrequency: 1500 },
+            filterEnvelope: { baseFrequency: 1500, octaves: 0 },
             envelope: { release: 2.0 },
         });
 
-        Transport.bpm.value = AUDIO_BPM;
+        this.lastStepTime = 0;
+        this.pendingCallbacks = [];
 
         canvas.addEventListener("click", this.startAudio.bind(this), { once: true });
         this.screen.on("click", this.onClick.bind(this));
@@ -84,6 +84,8 @@ export class App {
         this.world.on("wyrm-died", this.onWyrmDied.bind(this));
 
         startTone();
+
+        Transport.bpm.value = AUDIO_BPM;
         Transport.start();
     }
 

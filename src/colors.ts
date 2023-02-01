@@ -26,33 +26,6 @@ function randomColor(
     return oklch(l, c, h);
 }
 
-export function noteAndVelocityFromColor(color: Color): [string, number] {
-    const [, chroma, hue] = color.oklch();
-
-    let note: string;
-    if (70 <= hue && hue < 110) {
-        // orange
-        note = "D4";
-    } else if (110 <= hue && hue < 130) {
-        // yellow
-        note = "E4";
-    } else if (130 <= hue && hue < 200) {
-        // green
-        note = "G4";
-    } else if (200 <= hue && hue < 290) {
-        // blue
-        note = "A4";
-    } else {
-        // purple/red
-        note = "B4";
-    }
-
-    const normalizedChroma = clamp(unlerp(chroma, 0.05, 0.35), 0.0, 1.0);
-    const velocity = lerp(normalizedChroma, 0.5, 1.0);
-
-    return [note, velocity];
-}
-
 type ColorFunction = () => Color;
 
 // common
@@ -89,4 +62,31 @@ export function randomWyrmColor(id: number): Color {
     const index = (id - Tile.Wyrm + randomInt(-1, 3) + n) % n;
     const func = colorFunctions[index];
     return func();
+}
+
+export function noteAndVelocityFromColor(color: Color): [string, number] {
+    const [, chroma, hue] = color.oklch();
+
+    let note: string;
+    if (70 <= hue && hue < 110) {
+        // orange
+        note = "D4";
+    } else if (110 <= hue && hue < 130) {
+        // yellow
+        note = "E4";
+    } else if (130 <= hue && hue < 200) {
+        // green
+        note = "G4";
+    } else if (200 <= hue && hue < 290) {
+        // blue
+        note = "A4";
+    } else {
+        // purple/red
+        note = "B4";
+    }
+
+    const normalizedChroma = clamp(unlerp(chroma, 0.05, 0.35), 0.0, 1.0);
+    const velocity = lerp(normalizedChroma, 0.5, 0.9);
+
+    return [note, velocity];
 }

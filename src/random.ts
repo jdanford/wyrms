@@ -16,7 +16,7 @@ export function randomInt(min: number, max: number): number {
 
 // from https://stackoverflow.com/a/36481059
 export function randomGaussian(mean = 0, stdev = 1): number {
-    const u = 1 - Math.random(); // [0,1) => (0,1)
+    const u = 1 - Math.random();
     const v = Math.random();
     const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     return z * stdev + mean;
