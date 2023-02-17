@@ -2,7 +2,6 @@ import { Color } from "chroma-js";
 import EventEmitter = require("events");
 import TypedEventEmitter from "typed-emitter";
 
-import { Action, actionFromRelativeDirection, relativeDirectionFromAction } from "./action";
 import { Direction, RelativeDirection, rotate } from "./direction";
 import { World, WorldNeighbors } from "./world";
 import { move, Point } from "./point";
@@ -53,8 +52,7 @@ export class Wyrm {
     doBestAction(): void {
         const neighbors = this.world.getNeighbors(this.head, this.direction);
         const direction = this.selectBestDirection(neighbors);
-        const action = actionFromRelativeDirection(direction);
-        this.doAction(action);
+        this.doAction(direction);
     }
 
     private selectBestDirection(neighbors: WorldNeighbors): RelativeDirection {
@@ -68,8 +66,7 @@ export class Wyrm {
         return direction;
     }
 
-    doAction(action: Action): void {
-        const relativeDirection = relativeDirectionFromAction(action);
+    doAction(relativeDirection: RelativeDirection): void {
         const direction = rotate(this.direction, relativeDirection);
         const destination = move(this.head, direction);
 

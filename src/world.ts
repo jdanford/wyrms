@@ -2,7 +2,6 @@ import { Color } from "chroma-js";
 import EventEmitter = require("events");
 import TypedEventEmitter from "typed-emitter";
 
-import { Action } from "./action";
 import { MISSING_WYRM_COLOR, randomWyrmColor, TILE_COLORS } from "./colors";
 import { Direction, RelativeDirection, rotate } from "./direction";
 import { WorldEvents } from "./events";
@@ -177,7 +176,7 @@ export class World {
         const finalRatio = ratio * advantage;
         const [winner, loser] = finalRatio >= 0.5 ? [wyrmA, wyrmB] : [wyrmB, wyrmA];
         loser.die();
-        winner.doAction(Action.MoveForward);
+        winner.doAction(RelativeDirection.Forward);
     }
 
     getTile(position: Point): Tile {
