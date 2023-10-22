@@ -1,9 +1,8 @@
 import { start as startTone, ToneAudioNode, Volume, Transport, MonoSynth, Destination } from "tone";
 import { noteAndVelocityFromColor } from "./colors";
 
-import { Direction } from "./direction";
 import { ScreenClickEvent, WyrmDiedEvent, WyrmSpawnedEvent } from "./events";
-import { randomInt } from "./random";
+import { randomDirection } from "./random";
 import { Screen } from "./screen";
 import { World } from "./world";
 
@@ -99,7 +98,7 @@ export class App {
     }
 
     private onClick(event: ScreenClickEvent): void {
-        const direction = randomInt(0, 3) as Direction;
+        const direction = randomDirection();
         this.pendingCallbacks.push(() => this.world.createWyrm(event.position, direction));
     }
 

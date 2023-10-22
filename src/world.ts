@@ -7,7 +7,7 @@ import { Direction, RelativeDirection, rotate } from "./direction";
 import { WorldEvents } from "./events";
 import { clamp } from "./math";
 import { move, Point } from "./point";
-import { randomChance, randomGaussian, randomInt } from "./random";
+import { random, randomChance, randomDirection, randomGaussian } from "./random";
 import { Screen } from "./screen";
 import { Tile } from "./tile";
 import { Wyrm } from "./wyrm";
@@ -21,8 +21,6 @@ tileScores[Tile.Food] = 1;
 
 const MAX_WYRM_ID = (1 << 16) - 1;
 
-type WyrmTable = Record<number, Wyrm>;
-
 export interface WorldParams {
     width: number;
     height: number;
@@ -33,7 +31,7 @@ export class World {
     width: number;
     height: number;
     spawnInterval: number;
-    wyrms: WyrmTable;
+    wyrms: Map<number, Wyrm>;
 
     private nextWyrmId: number;
     private tiles: Uint16Array;
@@ -44,15 +42,13 @@ export class World {
         this.width = params.width;
         this.height = params.height;
         this.spawnInterval = params.spawnInterval;
-
-        this.wyrms = {};
+        this.wyrms = new Map();
         this.nextWyrmId = Tile.Wyrm;
         this.stepCount = 0;
-
         this.tiles = new Uint16Array(this.width * this.height);
-        this.fill();
-
         this.emitter = new EventEmitter() as TypedEventEmitter<WorldEvents>;
+
+        this.fill();
     }
 
     private fill(): void {
@@ -74,10 +70,10 @@ export class World {
             this.createRandomWyrm();
         }
 
-        const wyrms = Object.keys(this.wyrms).map((id) => this.wyrms[+id]);
+        const wyrms = Array.from(this.wyrms.values());
         wyrms.sort((wyrm) => -wyrm.size);
         wyrms.forEach((wyrm) => {
-            if (this.wyrms[wyrm.id]) {
+            if (this.wyrms.has(wyrm.id)) {
                 wyrm.doBestAction();
             }
         });
@@ -102,7 +98,7 @@ export class World {
             return TILE_COLORS[i];
         }
 
-        const wyrm = this.wyrms[i];
+        const wyrm = this.wyrms.get(i);
         if (wyrm === undefined) {
             console.error(`wyrm #${i} is dead`);
             return MISSING_WYRM_COLOR;
@@ -125,7 +121,7 @@ export class World {
         const x = clamp(randX, 0, this.width - 1);
         const y = clamp(randY, 0, this.height - 1);
         const position = { x, y };
-        const direction = randomInt(0, 3) as Direction;
+        const direction = randomDirection();
         this.createWyrm(position, direction);
     }
 
@@ -138,18 +134,17 @@ export class World {
         const id = this.getNextWyrmId();
         const color = randomWyrmColor(id);
         const wyrm = new Wyrm({ world: this, id, position, direction, color });
-        this.wyrms[id] = wyrm;
+        this.wyrms.set(id, wyrm);
         this.setTile(position, id);
 
-        this.emitter.emit("wyrm-spawned", { wyrm });
-        wyrm.on("wyrm-died", (event) => this.emitter.emit("wyrm-died", event));
+        this.emit("wyrm-spawned", { wyrm });
     }
 
     private getNextWyrmId(): number {
         const nextId = this.nextWyrmId;
         if (this.nextWyrmId == MAX_WYRM_ID) {
             this.nextWyrmId = Tile.Wyrm;
-            while (this.wyrms[this.nextWyrmId] !== undefined) {
+            while (this.wyrms.has(this.nextWyrmId)) {
                 this.nextWyrmId += 1;
             }
         } else {
@@ -160,9 +155,13 @@ export class World {
     }
 
     destroyWyrm(id: number): void {
-        const wyrm = this.wyrms[id];
-        delete this.wyrms[id];
+        const wyrm = this.wyrms.get(id);
+        if (wyrm === undefined) {
+            console.error(`wyrm #${id} is dead`);
+            return;
+        }
 
+        this.wyrms.delete(id);
         wyrm.segments.forEach((position, i) => {
             const foodChance = 1 / (i + 1) + 0.5;
             const tile = randomChance(foodChance) ? Tile.Food : Tile.Empty;
@@ -170,11 +169,13 @@ export class World {
         });
     }
 
-    fightWyrms(wyrmA: Wyrm, wyrmB: Wyrm): void {
-        const ratio = wyrmA.size / wyrmB.size;
-        const advantage = randomInt(8, 12) / 10;
-        const finalRatio = ratio * advantage;
-        const [winner, loser] = finalRatio >= 0.5 ? [wyrmA, wyrmB] : [wyrmB, wyrmA];
+    fightWyrms(attacker: Wyrm, defender: Wyrm): void {
+        const sizeFactor = attacker.size / (attacker.size + defender.size);
+        const luck = random(0.8, 1.2);
+        const winChance = sizeFactor * luck;
+        const [winner, loser] = randomChance(winChance)
+            ? [attacker, defender]
+            : [defender, attacker];
         loser.die();
         winner.doAction(RelativeDirection.Forward);
     }
@@ -209,6 +210,11 @@ export class World {
 
     private index(position: Point): number {
         return position.y * this.width + position.x;
+    }
+
+    emit<E extends keyof WorldEvents>(event: E, ...args: Parameters<WorldEvents[E]>): this {
+        this.emitter.emit(event, ...args);
+        return this;
     }
 
     on<E extends keyof WorldEvents>(event: E, listener: WorldEvents[E]): this {

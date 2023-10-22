@@ -1,13 +1,10 @@
 import { Color } from "chroma-js";
-import EventEmitter = require("events");
-import TypedEventEmitter from "typed-emitter";
 
 import { Direction, RelativeDirection, rotate } from "./direction";
 import { World, WorldNeighbors } from "./world";
 import { move, Point } from "./point";
 import { randomChance } from "./random";
 import { Tile } from "./tile";
-import { WyrmEvents } from "./events";
 
 export interface WyrmParams {
     world: World;
@@ -30,15 +27,12 @@ export class Wyrm {
     direction: Direction;
     color: Color;
 
-    private emitter: TypedEventEmitter<WyrmEvents>;
-
     constructor(params: WyrmParams) {
         this.id = params.id;
         this.world = params.world;
         this.segments = [params.position];
         this.direction = params.direction;
         this.color = params.color;
-        this.emitter = new EventEmitter() as TypedEventEmitter<WyrmEvents>;
     }
 
     get size(): number {
@@ -80,7 +74,7 @@ export class Wyrm {
             case Tile.Food:
                 return this.move({ direction, grow: true, poop: false });
             default:
-                const enemyWyrm = this.world.wyrms[tileId];
+                const enemyWyrm = this.world.wyrms.get(tileId);
                 if (enemyWyrm === undefined) {
                     console.error(`wyrm #${this.id} encountered unknown wyrm #${tileId}`);
                     return;
@@ -107,21 +101,6 @@ export class Wyrm {
 
     die(): void {
         this.world.destroyWyrm(this.id);
-        this.emitter.emit("wyrm-died", { wyrm: this });
-    }
-
-    on<E extends keyof WyrmEvents>(event: E, listener: WyrmEvents[E]): this {
-        this.emitter.on(event, listener);
-        return this;
-    }
-
-    once<E extends keyof WyrmEvents>(event: E, listener: WyrmEvents[E]): this {
-        this.emitter.once(event, listener);
-        return this;
-    }
-
-    off<E extends keyof WyrmEvents>(event: E, listener: WyrmEvents[E]): this {
-        this.emitter.off(event, listener);
-        return this;
+        this.world.emit("wyrm-died", { wyrm: this });
     }
 }

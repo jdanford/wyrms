@@ -70,7 +70,12 @@ export class Screen {
         const x = Math.floor(event.offsetX / this.pixelSize);
         const y = Math.floor(event.offsetY / this.pixelSize);
         const position = { x, y };
-        this.emitter.emit("click", { position });
+        this.emit("click", { position });
+    }
+
+    emit<E extends keyof ScreenEvents>(event: E, ...args: Parameters<ScreenEvents[E]>): this {
+        this.emitter.emit(event, ...args);
+        return this;
     }
 
     on<E extends keyof ScreenEvents>(event: E, listener: ScreenEvents[E]): this {

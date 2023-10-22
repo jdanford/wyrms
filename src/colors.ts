@@ -4,9 +4,9 @@ import { randomGaussian, randomInt } from "./random";
 import { Tile } from "./tile";
 
 export const TILE_COLORS: Color[] = [];
-TILE_COLORS[Tile.Empty] = oklch(0.184, 0.052, 249.7);
+TILE_COLORS[Tile.Empty] = oklch(0.18, 0.05, 250);
 TILE_COLORS[Tile.Wall] = oklch(0.6, 0.09, 300);
-TILE_COLORS[Tile.Food] = oklch(0.4, 0.152, 19.7);
+TILE_COLORS[Tile.Food] = oklch(0.4, 0.15, 20);
 
 export const BACKGROUND_COLOR = TILE_COLORS[Tile.Empty];
 export const MISSING_WYRM_COLOR = oklch(1.0, 0.0, 0);

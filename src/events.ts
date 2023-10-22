@@ -17,9 +17,7 @@ export interface WyrmDiedEvent {
     wyrm: Wyrm;
 }
 
-export type WyrmEvents = {
+export type WorldEvents = {
     "wyrm-spawned": (event: WyrmSpawnedEvent) => void;
     "wyrm-died": (event: WyrmDiedEvent) => void;
 };
-
-export type WorldEvents = WyrmEvents;
